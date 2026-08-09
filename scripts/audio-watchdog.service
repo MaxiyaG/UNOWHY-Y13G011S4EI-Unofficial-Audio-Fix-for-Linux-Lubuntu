@@ -1,0 +1,12 @@
+[Unit]
+Description=Continuous ALSA mixer watchdog for the ES8336 (sof-essx8336) codec
+After=sound.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/audio-watchdog.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

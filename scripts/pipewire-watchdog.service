@@ -1,0 +1,12 @@
+[Unit]
+Description=PipeWire stream-error watchdog for the ES8336 audio output
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pipewire-watchdog.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
