@@ -22,7 +22,7 @@ sur une autre machine que celle sur laquelle il a été construit.
 - Il s'agit d'un **prototype**, publié dans l'espoir d'aider d'autres
   personnes ayant exactement le même matériel — pas d'un outil abouti et
   généraliste.
-- **Utilisation entièrement à vos propres risques.** L'auteur/les auteurs
+- **Utilisation entièrement à vos propres risques.** L'auteur
   de ce dépôt **n'assument aucune responsabilité** en cas de dommage,
   perte de données, instabilité, ou toute autre conséquence résultant de
   l'utilisation de ces scripts.
