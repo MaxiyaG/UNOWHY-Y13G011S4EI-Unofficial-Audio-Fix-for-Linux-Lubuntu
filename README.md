@@ -71,7 +71,7 @@ la machine utilisable au quotidien.
 
 | Composant | Détails |
 |---|---|
-| **Modèle** | **UNOWHY Y13G011S4EI** — ordinateur/tablette éducatif (`family=Education`) |
+| **Modèle** | **UNOWHY Y13G011S4EI** |
 | **Carte mère** | `EM_IG116_200B_ENE_F_V2.0` — UNOWHY |
 | **CPU** | Intel Celeron N4120 @ 1.10 GHz — Gemini Lake, 4 cœurs |
 | **RAM** | 4 GiB LPDDR4 |
