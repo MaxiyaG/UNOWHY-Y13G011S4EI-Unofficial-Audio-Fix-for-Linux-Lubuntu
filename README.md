@@ -45,9 +45,8 @@ Sur ce matériel, le son s'arrête aléatoirement de fonctionner sous
 Linux — au premier démarrage, après une mise en veille, après que la
 mise en veille automatique (autosuspend) PCI du contrôleur audio se
 déclenche pendant une période d'inactivité, ou après plusieurs
-pauses/lectures répétées dans un onglet de navigateur — alors même que
-Windows sur cette même machine ne présente aucun souci et que le système
-continue de signaler un périphérique audio sans erreur apparente.
+pauses/lectures répétées dans un onglet de navigateur, alors même que
+Windows sur cette même machine ne présente aucun souci (lorsque les pilotes officiels/adaptés sont correctement installés).
 
 Au cours d'une longue session de diagnostic, quatre causes
 **indépendantes** ont été identifiées et corrigées, plus un problème
