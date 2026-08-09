@@ -11,7 +11,7 @@ noyau.
 
 ---
 
-## ⚠️ Avertissement
+## ⚠️ AVERTISSEMENT : PROTOTYPE EN COURS DE DÉVELOPPEMENT — UTILISATION À VOS PROPRES RISQUES ET PÉRILS
 
 Ce projet a été construit avec l'aide d'un assistant IA (un LLM), **et
 non par un développeur professionnel du noyau/audio**, au cours d'une
