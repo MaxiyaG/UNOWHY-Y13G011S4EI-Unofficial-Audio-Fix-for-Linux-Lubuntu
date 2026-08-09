@@ -3,7 +3,7 @@
 Correctifs pour le bug récurrent de "son absent" / "son qui coupe"
 affectant les haut-parleurs intégrés de la tablette/ordinateur portable
 éducatif **UNOWHY Y13G011S4EI** (Intel Celeron N4120, Gemini Lake, codec
-ES8336 via SOF) sous **Lubuntu 26.04 LTS**. Ces correctifs s'appliquent
+ES8336 via SOF) sous **Linux (Lubuntu 26.04 LTS)**. Ces correctifs s'appliquent
 très probablement aussi à d'autres machines partageant la même
 combinaison de puce audio (pilote `sof-audio-pci-intel-apl` + codec
 `sof-essx8336`) non reconnue dans la table de correctifs matériels du
