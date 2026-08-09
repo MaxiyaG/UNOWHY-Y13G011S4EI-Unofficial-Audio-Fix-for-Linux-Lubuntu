@@ -1,3 +1,5 @@
+*[English version below](#english-version) — [Version anglaise plus bas](#english-version)*
+
 # UNOWHY Y13G011S4EI — Correctif audio pour Lubuntu / Ubuntu
 
 Correctifs pour le bug récurrent de "son absent" / "son qui coupe"
@@ -213,4 +215,223 @@ configuration d'origine.
 ## Licence
 
 Fourni tel quel, sans garantie d'aucune sorte (voir
-[Avertissement](#️-avertissement)). 
+[Avertissement](#️-avertissement)).
+
+---
+---
+
+<a name="english-version"></a>
+# UNOWHY Y13G011S4EI — Audio Fix for Lubuntu / Ubuntu
+
+Fixes for the recurring "no sound" / "sound cutting out" bug affecting
+the built-in speakers of the **UNOWHY Y13G011S4EI** educational
+tablet/laptop (Intel Celeron N4120, Gemini Lake, ES8336 codec via SOF)
+on **Linux (Lubuntu 26.04 LTS)**. These fixes very likely also apply to
+other machines sharing the same audio chip combination (driver
+`sof-audio-pci-intel-apl` + codec `sof-essx8336`) that isn't recognized
+in the kernel's hardware quirk table.
+
+---
+
+## ⚠️ WARNING: PROTOTYPE UNDER DEVELOPMENT — USE AT YOUR OWN RISK
+
+This project was built with the help of an AI assistant (an LLM), **not
+by a professional kernel/audio developer**, over the course of an
+iterative trial-and-error debugging session on a single physical
+machine. It has **not** been peer-reviewed and has **not** been tested
+on any machine other than the one it was built on.
+
+- **Prototype** published to help others with the exact same hardware —
+  not a polished, general-purpose tool.
+- **Use entirely at your own risk.** The author of this repo assumes no
+  liability for any damage, data loss, instability, or other
+  consequences.
+- **Read the scripts before running them** — they modify the ALSA
+  mixer, install systemd services, a kernel module parameter, and a PCI
+  power-management setting.
+- If something goes wrong: `sudo ./uninstall.sh` (see below).
+
+---
+
+## Summary
+
+On this hardware, sound randomly stops working under Linux — on first
+boot, after sleep, after the audio controller's PCI autosuspend kicks
+in during idle time, or after repeated pause/play cycles in a browser
+tab — while Windows on the same machine shows no such issues.
+
+Four **independent** causes were identified and fixed, plus one
+remaining unresolved issue:
+
+| # | Cause | Fix | Status |
+|---|-------|-----|--------|
+| 1 | Inverted headphone jack detection at boot (motherboard missing from the kernel's DMI quirk table) | Kernel module quirk (`quirk=64`, JD_INVERTED) | ✅ Fixed |
+| 2 | Codec mixer reverts to "muted / wrong routing" after sleep | Continuous ALSA watchdog | ✅ Mitigated |
+| 3 | Automatic PCI autosuspend of the audio controller | Autosuspend permanently disabled | ✅ Fixed |
+| 4 | PipeWire pipeline hangs even when the ALSA mixer is correct | Watchdog based on the PipeWire error counter | ✅ Mitigated |
+| 5 | A single browser tab (observed with TikTok on Brave) loses its audio stream | — | ❌ Unfixed — see [Future work](#future-work) |
+
+None of these fixes is a "real" upstream kernel/driver patch — they're
+practical workarounds (a documented kernel quirk, plus monitoring
+scripts that detect and correct drift) that make the machine usable
+day to day.
+
+---
+
+## Covered hardware
+
+| Component | Details |
+|---|---|
+| **Model** | UNOWHY Y13G011S4EI |
+| **Motherboard** | `EM_IG116_200B_ENE_F_V2.0` — UNOWHY |
+| **CPU** | Intel Celeron N4120 @ 1.10 GHz — Gemini Lake, 4 cores |
+| **RAM** | 4 GiB LPDDR4 |
+| **Audio controller** | Intel *Celeron/Pentium Silver Processor HD Audio* (`8086:3198`) |
+| **Subsystem** | `2782:0220` — Emdoor Digital Technology |
+| **PCI address** | `0000:00:0e.0` |
+| **Audio driver** | `sof-audio-pci-intel-apl` (Sound Open Firmware) |
+| **Codec** | ES8336 — `snd_soc_sof_es8336` |
+| **ALSA card** | `sof-essx8336` |
+| **OS tested** | Lubuntu 26.04 LTS, kernel `7.0.0-29-generic` |
+
+**Compatibility:** if your machine reports the same
+`sof-audio-pci-intel-apl` driver and the same `sof-essx8336` card
+(`lspci -nnk | grep -A3 -i audio` and `cat /proc/asound/cards`), these
+fixes very likely apply to you too, even on a different motherboard
+model.
+
+---
+
+## Technical explanation of the issues
+
+### 1. Inverted jack detection at boot
+
+The `snd_soc_sof_es8336` driver uses a DMI-based quirk table to
+interpret its jack-detection signal according to the exact motherboard.
+Boards missing from this table get `quirk mask 0x0`
+(`dmesg | grep -i quirk`): no correction is applied, and the driver
+permanently believes a headphone is plugged in (`Headphone Jack` shows
+`on` even with nothing connected), cutting the internal speaker right
+from cold boot.
+
+Confirmed by testing: plugging in an actual headphone produced sound
+correctly — only *the jack polarity interpretation* is wrong. Forcing
+quirk bit 6 (`SOF_ES8336_JD_INVERTED`, value 64) fixes this on every
+boot.
+
+### 2. Mixer reset after sleep / idle / pause-play
+
+The codec's ALSA controls (`Speaker`, `SPKL`/`SPKR`, and especially
+`HPVol SPKVol`, which selects the DAC channels feeding the speaker)
+reset after a system sleep, PCI autosuspend, or simply several
+video pause/play cycles — **with no sleep involved at all**. Since the
+triggers are multiple and independent, `audio-watchdog.sh` continuously
+polls these controls and corrects any drift within a fraction of a
+second, regardless of the cause.
+
+Subtlety: `amixer sget 'HPVol SPKVol'` always lists all 4 possible
+values on its `Items:` line — only the `Item0:` line indicates which
+one is actually active. A `grep` over the whole output can wrongly
+match the wrong line.
+
+### 3. PCI autosuspend
+
+The kernel itself can put the PCI audio device to sleep
+(`power/control = auto`) after idle time, contributing to issue #2. A
+systemd service permanently forces `power/control = on` (a udev rule
+proved unreliable, racing with SOF driver init), at a negligible power
+cost.
+
+### 4. PipeWire hangs independent of the ALSA mixer
+
+Even with a correct mixer and `runtime_status active`, playback can
+stay silent. `pw-top` confirms this via the `ERR` column of the
+`alsa_output...sof-essx8336...` node: `0` when it works, `1`+ when
+sound has died silently. This counter is **cumulative** (never resets
+to 0), so `pipewire-watchdog.sh` only reacts to an *increase* in its
+value, and then restarts PipeWire/WirePlumber.
+
+### 5. Unresolved: per-browser-tab audio bug
+
+Observed once: a TikTok tab lost all audio (no PipeWire stream) while
+a YouTube tab in the same browser (Brave) worked normally. With the
+device, mixer, and pipeline otherwise fully functional, this appears
+to be a browser/site-specific issue, **outside the scope of these
+scripts**.
+
+---
+
+## Installation (Lubuntu / Ubuntu)
+
+```bash
+git clone https://github.com/<your-username>/unowhy-y13g011s4ei-lubuntu-audio-fix.git
+cd unowhy-y13g011s4ei-lubuntu-audio-fix
+sudo ./install.sh
+sudo reboot
+```
+
+`install.sh` checks that your hardware matches, installs the kernel
+quirk, the scripts, and the 3 systemd services, then enables them. A
+reboot is required for the quirk (`quirk=64`) to take effect.
+
+> PCI address different from `0000:00:0e.0`? Edit it in
+> `scripts/audio-no-runtime-pm.service` and
+> `scripts/pipewire-watchdog.sh` before running `install.sh`.
+
+**Quick check** after rebooting:
+
+```bash
+cat /sys/module/snd_soc_sof_es8336/parameters/quirk   # -> 64
+systemctl status audio-watchdog.service                # -> active (running)
+speaker-test -c2 -Dhw:0,0 -t wav
+```
+
+**Emergency button** for the per-tab bug (§5) — bind it to a keyboard
+shortcut if needed (`pkexec /usr/local/bin/audio-fix-all.sh`):
+
+```bash
+sudo /usr/local/bin/audio-fix-all.sh
+```
+
+---
+
+## Uninstall
+
+```bash
+sudo ./uninstall.sh
+sudo reboot
+```
+
+Removes the 3 services, the scripts, and the kernel quirk — back to
+the original configuration.
+
+---
+
+## Future work
+
+- **Per-tab audio bug (§5).** To investigate: Brave's background-tab
+  throttling, a TikTok-specific bug, or WirePlumber dropping a node
+  without recreating it. Does it happen on Firefox/Chromium too?
+- **Headphone support.** The jack-detection signal is unreliable in
+  both directions (`SW_HEADPHONE_INSERT` stays stuck "inserted" even
+  when unplugged): currently impossible to distinguish a real
+  headphone from a false positive. Manual workaround: stop
+  `audio-watchdog.service`, switch `HPVol SPKVol` to headphone
+  routing, restart the service when done.
+- **CPU/battery.** `INTERVAL` in `audio-watchdog.sh` (0.5s by default)
+  is a responsiveness/power tradeoff — increase it if needed.
+- **Other distributions.** The approach should be transposable to
+  Debian/Fedora/Arch, but the SOF firmware package name differs
+  (`sof-firmware`, `alsa-sof-firmware`) and may require regenerating
+  the initramfs (`dracut --force`, `mkinitcpio -P`).
+- **Upstream fix.** Nothing has been submitted to the SOF/ALSA
+  maintainers — a proper entry in their quirk table would be
+  preferable to a watchdog. Contributions welcome on
+  [thesofproject](https://github.com/thesofproject).
+
+---
+
+## License
+
+Provided as-is, with no warranty of any kind (see
+[Warning](#-warning-prototype-under-development--use-at-your-own-risk)).
