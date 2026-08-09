@@ -208,13 +208,9 @@ configuration d'origine.
   watchdog. Contributions bienvenues sur
   [thesofproject](https://github.com/thesofproject).
 
-Contributions et tests sur d'autres appareils UNOWHY/Gemini Lake/ES8336
-bienvenus.
-
 ---
 
 ## Licence
 
 Fourni tel quel, sans garantie d'aucune sorte (voir
-[Avertissement](#️-avertissement)). Libre d'utilisation, modification et
-redistribution.
+[Avertissement](#️-avertissement)). 
